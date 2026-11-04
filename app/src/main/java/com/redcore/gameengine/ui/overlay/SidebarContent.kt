@@ -25,7 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BatteryStd
-import androidx.compose.material.icons.rounded.Brightness_6
+import androidx.compose.material.icons.rounded.Brightness6
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeveloperBoard
@@ -345,7 +345,7 @@ private fun ToolButton(
 private fun toolIcon(tool: SidebarTool): ImageVector = when (tool) {
     SidebarTool.FPS -> Icons.Rounded.Speed
     SidebarTool.NETWORK -> Icons.Rounded.Wifi
-    SidebarTool.BRIGHTNESS -> Icons.Rounded.Brightness_6
+    SidebarTool.BRIGHTNESS -> Icons.Rounded.Brightness6
     SidebarTool.VOLUME -> Icons.Rounded.GraphicEq
     SidebarTool.TIMER -> Icons.Rounded.Timer
     SidebarTool.SCREENSHOT -> Icons.Rounded.PhotoCamera

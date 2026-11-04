@@ -11,7 +11,7 @@ object Haptics {
     fun tap(context: Context, enabled: Boolean, strong: Boolean = false) {
         if (!enabled) return
         try {
-            val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
                     ?.defaultVibrator
             } else {

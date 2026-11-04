@@ -87,12 +87,12 @@ class AudioViewModel : ViewModel() {
         }
 
         _sessions.value = try {
+            // getActivePlaybackConfigurations() already returns only live players.
             audioManager.getActivePlaybackConfigurations()
-                .filter { it.isActive }
-                .map { config ->
+                .mapIndexed { index, config ->
                     val attrs = config.audioAttributes
                     val usage = usageName(attrs.usage)
-                    "Player #${config.playerInterfaceId} • $usage"
+                    "Player ${index + 1} • $usage"
                 }
                 .distinct()
                 .ifEmpty { listOf("No active playback sessions") }

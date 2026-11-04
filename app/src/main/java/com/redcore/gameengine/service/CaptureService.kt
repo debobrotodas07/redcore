@@ -257,12 +257,14 @@ class CaptureService : Service() {
     private fun applySource(rec: MediaRecorder, withMic: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             rec.setVideoSource(MediaRecorder.VideoSource.SURFACE)
-            rec.setAudioSource(if (withMic) MediaRecorder.AudioSource.MIC else MediaRecorder.AudioSource.NONE)
         } else {
             @Suppress("DEPRECATION")
-            rec.setAudioSource(if (withMic) MediaRecorder.AudioSource.MIC else MediaRecorder.AudioSource.NONE)
-            @Suppress("DEPRECATION")
             rec.setVideoSource(MediaRecorder.VideoSource.SURFACE)
+        }
+        // Android has no "no audio source" constant — leaving setAudioSource uncalled
+        // is what produces a video-only recording.
+        if (withMic) {
+            rec.setAudioSource(MediaRecorder.AudioSource.MIC)
         }
     }
 

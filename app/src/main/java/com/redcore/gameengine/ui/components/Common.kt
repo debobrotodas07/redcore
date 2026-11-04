@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Button
@@ -432,7 +433,7 @@ fun AppIcon(
             )
         } else {
             Icon(
-                androidx.compose.material.icons.Icons.Rounded.SportsEsports,
+                Icons.Rounded.SportsEsports,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size((size * 0.5).dp)

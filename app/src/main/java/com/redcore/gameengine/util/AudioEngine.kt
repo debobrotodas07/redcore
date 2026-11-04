@@ -40,23 +40,13 @@ object AudioEngine {
         if (minBuffer <= 0) return@withContext null
         val bufferSize = max(minBuffer * 2, SAMPLE_RATE)
         val recorder = try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                AudioRecord(
-                    MediaRecorder.AudioSource.MIC,
-                    SAMPLE_RATE,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    bufferSize
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                AudioRecord(
-                    MediaRecorder.AudioSource.MIC,
-                    SAMPLE_RATE,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT
-                )
-            }
+            AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize
+            )
         } catch (t: Throwable) {
             return@withContext null
         }

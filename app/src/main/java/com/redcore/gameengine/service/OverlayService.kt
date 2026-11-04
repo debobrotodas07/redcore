@@ -424,7 +424,7 @@ private class SidebarHost(
 
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateController = SavedStateRegistryController.create(this)
-    private val viewModelStore = ViewModelStore()
+    private val store = ViewModelStore()
 
     val settingsState = mutableStateOf(AppSettings())
     val profileState = mutableStateOf(PerformanceProfile.BALANCED)
@@ -432,7 +432,7 @@ private class SidebarHost(
 
     override val lifecycle: Lifecycle get() = lifecycleRegistry
     override val savedStateRegistry: SavedStateRegistry get() = savedStateController.savedStateRegistry
-    override val viewModelStore: ViewModelStore get() = viewModelStore
+    override val viewModelStore: ViewModelStore get() = store
 
     init {
         setViewTreeLifecycleOwner(this)
@@ -469,7 +469,7 @@ private class SidebarHost(
 
     fun dispose() {
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-        viewModelStore.clear()
+        store.clear()
     }
 }
 
