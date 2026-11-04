@@ -14,6 +14,7 @@ import android.os.SystemClock
 import java.io.File
 import kotlin.math.roundToInt
 
+@androidx.compose.runtime.Immutable
 data class DeviceSnapshot(
     val model: String = "",
     val manufacturer: String = "",

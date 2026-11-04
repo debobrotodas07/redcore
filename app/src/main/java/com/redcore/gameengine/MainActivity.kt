@@ -11,9 +11,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.redcore.gameengine.data.model.AccentTheme
 import com.redcore.gameengine.navigation.RedCoreNavHost
 import com.redcore.gameengine.service.CaptureMode
 import com.redcore.gameengine.service.CaptureRequest
@@ -21,6 +24,8 @@ import com.redcore.gameengine.service.CaptureRequester
 import com.redcore.gameengine.service.CaptureService
 import com.redcore.gameengine.ui.theme.RedCoreTheme
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -85,8 +90,14 @@ class MainActivity : ComponentActivity() {
         val startRoute = intent?.getStringExtra(EXTRA_ROUTE)
 
         setContent {
-            val settings by RedCoreApp.locator().settings.settings.collectAsState()
-            RedCoreTheme(accentTheme = settings.accent) {
+            // Only the accent drives the theme; collecting the whole settings object
+            // here recomposed the entire navigation host on every unrelated toggle.
+            val accent by remember {
+                RedCoreApp.locator().settings.settings
+                    .map { it.accent }
+                    .distinctUntilChanged()
+            }.collectAsStateWithLifecycle(initialValue = AccentTheme.CRIMSON)
+            RedCoreTheme(accentTheme = accent) {
                 RedCoreNavHost(
                     startRoute = startRoute,
                     requestAudioPermission = {
@@ -107,9 +118,9 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             RedCoreApp.locator().games.closeOpenSessions()
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Nothing to do; notifications permission handled at start.
-        }
+        // The user may have just granted (or revoked) "Display over other apps" in
+        // system settings. Reconcile so the sidebar appears without re-toggling.
+        com.redcore.gameengine.service.OverlayController.reconcile(this)
     }
 
     override fun onDestroy() {

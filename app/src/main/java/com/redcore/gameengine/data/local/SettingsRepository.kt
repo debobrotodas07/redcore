@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 
 private val Context.settingsStore: DataStore<Preferences> by preferencesDataStore(name = "redcore_settings")
 
+@androidx.compose.runtime.Immutable
 data class AppSettings(
     val accent: AccentTheme = AccentTheme.CRIMSON,
     val animations: Boolean = true,

@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -388,23 +389,16 @@ fun SelectRow(
 @Composable
 fun rememberAppIcon(packageName: String?, customUri: String?): ImageBitmap? {
     val context = LocalContext.current
-    return remember(packageName, customUri) {
-        try {
-            if (!customUri.isNullOrBlank()) {
-                context.contentResolver.openInputStream(android.net.Uri.parse(customUri))?.use { stream ->
-                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
-                }
-            } else if (!packageName.isNullOrBlank()) {
-                val drawable = context.packageManager.getApplicationIcon(packageName)
-                val bitmap = drawable.toBitmap(width = 144, height = 144)
-                bitmap.asImageBitmap()
-            } else {
-                null
-            }
-        } catch (t: Throwable) {
-            null
+    val key = com.redcore.gameengine.util.IconCache.keyOf(packageName, customUri) ?: return null
+    val state = produceState(
+        initialValue = com.redcore.gameengine.util.IconCache.get(key),
+        key1 = key
+    ) {
+        if (value == null) {
+            value = com.redcore.gameengine.util.IconCache.load(context, packageName, customUri)
         }
     }
+    return state.value
 }
 
 @Composable

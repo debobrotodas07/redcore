@@ -139,7 +139,7 @@ fun SidebarContent(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                AnimatedCoreLogo(size = 18.dp, animated = true)
+                AnimatedCoreLogo(size = 18.dp, animated = settings.animations)
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = if (side == SidebarSide.LEFT) "›" else "‹",
@@ -358,11 +358,16 @@ private fun toolIcon(tool: SidebarTool): ImageVector = when (tool) {
 @Composable
 private fun TelemetryBlock(context: Context, accent: Color) {
     val probe = remember { DeviceProbe(context) }
-    var snap by remember { mutableStateOf(probe.snapshot()) }
-    LaunchedEffect(Unit) {
+    // Reads /proc + /sys: must never touch Main, or the whole overlay stutters.
+    val snap by androidx.compose.runtime.produceState(
+        initialValue = com.redcore.gameengine.sys.DeviceSnapshot(),
+        key1 = probe
+    ) {
         while (true) {
-            snap = probe.snapshot()
-            delay(1500)
+            value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                probe.snapshot()
+            }
+            kotlinx.coroutines.delay(1500)
         }
     }
     Column {

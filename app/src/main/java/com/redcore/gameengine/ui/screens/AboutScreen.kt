@@ -24,6 +24,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,7 +57,11 @@ private const val FEEDBACK_URL = "https://github.com/zyvo9/ZYVO-AI/issues"
 fun AboutScreen(nav: NavHostController) {
     val context = LocalContext.current
     val accent = MaterialTheme.colorScheme.primary
-    val snapshot: DeviceSnapshot = remember { RedCoreApp.locator().probe.snapshot() }
+    val snapshot: DeviceSnapshot by androidx.compose.runtime.produceState(initialValue = DeviceSnapshot()) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            RedCoreApp.locator().probe.snapshot()
+        }
+    }
 
     ScreenColumn {
         ScreenTopBar(

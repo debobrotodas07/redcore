@@ -66,21 +66,25 @@ class OverlayService : Service() {
 
     private var settings: AppSettings = AppSettings()
     private var dragY: Float = 0f
+    private var dragging = false
     private var screenHeight = 1920
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         screenHeight = resources.displayMetrics.heightPixels
 
         scope.launch {
+            // Collect the live preferences: the service always reflects what the
+            // user toggled, no matter which screen (or boot) started it.
             RedCoreApp.locator().settings.settings.collectLatest { updated ->
                 settings = updated
                 host?.settingsState?.value = updated
                 host?.profileState?.value = updated.globalProfile
-                if (updated.sidebarEnabled) {
+                if (updated.sidebarEnabled && PermissionHelper.overlay(this@OverlayService)) {
                     ensureSidebar()
                 } else {
                     removeSidebar()
@@ -107,17 +111,41 @@ class OverlayService : Service() {
         }
         startInForeground()
         if (!PermissionHelper.overlay(this)) {
+            // No overlay permission: nothing can be drawn. Do not leave a service
+            // (or the "on" toggle) pretending an overlay exists.
             Notifications.alert(
                 this,
                 "Overlay permission needed",
-                "Allow \"Display over other apps\" to use the REDCORE sidebar."
+                "Allow \"Display over other apps\" for REDCORE, then turn the sidebar on again."
             )
             stopSelf()
             return START_NOT_STICKY
         }
-        if (settings.sidebarEnabled) ensureSidebar()
-        updateCrosshair(settings)
+        val current = RedCoreApp.locator().settings.settings.value
+        settings = current
+        if (current.sidebarEnabled) ensureSidebar()
+        updateCrosshair(current)
         return START_STICKY
+    }
+
+    /**
+     * Orientation / display-size change: the window keeps its layout params, but the
+     * drag clamp and the persisted vertical fraction are expressed against the screen
+     * height, so they must be recomputed or the handle can end up off-screen.
+     */
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        screenHeight = resources.displayMetrics.heightPixels
+        val params = sidebarParams ?: return
+        val view = host ?: return
+        params.y = (settings.sidebarY * (screenHeight - dp(320)))
+            .toInt()
+            .coerceIn(0, (screenHeight - dp(120)).coerceAtLeast(0))
+        dragY = params.y.toFloat()
+        try {
+            windowManager.updateViewLayout(view, params)
+        } catch (_: Throwable) {
+        }
     }
 
     private fun startInForeground() {
@@ -158,28 +186,47 @@ class OverlayService : Service() {
 
     // ---------------- sidebar ----------------
 
+    /**
+     * Adds the sidebar window if needed. Idempotent: an attached window is only
+     * re-laid-out, a detached one is replaced (never added twice — duplicate
+     * overlay windows are a crash source on some OEM ROMs).
+     */
     private fun ensureSidebar() {
-        if (host != null) {
+        if (!PermissionHelper.overlay(this)) {
+            removeSidebar()
+            return
+        }
+        val existing = host
+        if (existing != null && existing.isAttachedToWindow && existing.parent != null) {
             applySidebarParams(settings)
             return
         }
+        if (existing != null) removeSidebar()
+
         val view = SidebarHost(this, actions)
         view.settingsState.value = settings
         view.profileState.value = settings.globalProfile
         val params = buildSidebarParams(settings)
-        host = view
-        sidebarParams = params
         try {
             windowManager.addView(view, params)
+            host = view
+            sidebarParams = params
         } catch (t: Throwable) {
             host = null
             sidebarParams = null
+            try {
+                windowManager.removeViewImmediate(view)
+            } catch (_: Throwable) {
+            }
+            view.dispose()
             Notifications.alert(this, "Sidebar could not start", t.message ?: "Overlay was rejected")
         }
     }
 
     private fun buildSidebarParams(s: AppSettings): WindowManager.LayoutParams {
-        val y = (s.sidebarY * (screenHeight - dp(320))).toInt().coerceAtLeast(0)
+        val y = (s.sidebarY * (screenHeight - dp(320)))
+            .toInt()
+            .coerceIn(0, (screenHeight - dp(120)).coerceAtLeast(0))
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -189,9 +236,11 @@ class OverlayService : Service() {
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE
             },
+            // NOT_FOCUSABLE keeps the game receiving keys; LAYOUT_IN_SCREEN lets the
+            // handle sit in the cutout area. NO_LIMITS is deliberately absent — it
+            // lets the window drift outside real bounds on some ROMs.
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or if (s.sidebarSide == SidebarSide.LEFT) Gravity.START else Gravity.END
@@ -208,13 +257,16 @@ class OverlayService : Service() {
     private fun applySidebarParams(s: AppSettings) {
         val params = sidebarParams ?: return
         val hostView = host ?: return
-        val currentlyRight = (params.gravity and Gravity.END) != 0
-        val wantsRight = s.sidebarSide == SidebarSide.RIGHT
         params.gravity = Gravity.TOP or if (s.sidebarSide == SidebarSide.LEFT) Gravity.START else Gravity.END
-        if (currentlyRight != wantsRight) {
-            params.y = (s.sidebarY * (screenHeight - dp(320))).toInt().coerceAtLeast(0)
-            dragY = params.y.toFloat()
+        // While dragging, dragY is authoritative; otherwise follow the stored fraction
+        // so a change made from the in-app slider takes effect on the live window.
+        if (!dragging) {
+            dragY = (s.sidebarY * (screenHeight - dp(320)))
+                .toInt()
+                .coerceIn(0, (screenHeight - dp(120)).coerceAtLeast(0))
+                .toFloat()
         }
+        params.y = dragY.toInt().coerceIn(0, (screenHeight - dp(120)).coerceAtLeast(0))
         try {
             windowManager.updateViewLayout(hostView, params)
         } catch (_: Throwable) {
@@ -237,6 +289,7 @@ class OverlayService : Service() {
         override fun drag(deltaY: Float) {
             val params = sidebarParams ?: return
             val view = host ?: return
+            dragging = true
             val max = (screenHeight - view.height.coerceAtLeast(dp(200))).coerceAtLeast(dp(120))
             dragY = (dragY + deltaY).coerceIn(0f, max.toFloat())
             params.y = dragY.toInt()
@@ -247,6 +300,7 @@ class OverlayService : Service() {
         }
 
         override fun dragFinished() {
+            dragging = false
             val max = (screenHeight - (host?.height ?: dp(200))).coerceAtLeast(1)
             val fraction = (dragY / max.toFloat()).coerceIn(0.05f, 0.95f)
             RedCoreApp.locator().settings.setSidebarY(fraction)
@@ -362,6 +416,7 @@ class OverlayService : Service() {
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onDestroy() {
+        isRunning = false
         removeSidebar()
         removeCrosshair()
         scope.cancel()
@@ -373,6 +428,11 @@ class OverlayService : Service() {
         const val ACTION_STOP = "com.redcore.gameengine.STOP_OVERLAY"
         const val ACTION_SYNC = "com.redcore.gameengine.SYNC_OVERLAY"
 
+        /** Volatile because both the service thread and callers read it. */
+        @Volatile
+        var isRunning: Boolean = false
+            private set
+
         fun start(context: Context) {
             val intent = Intent(context, OverlayService::class.java).setAction(ACTION_START)
             try {
@@ -382,14 +442,20 @@ class OverlayService : Service() {
                     context.startService(intent)
                 }
             } catch (_: Throwable) {
+                // Background-start restrictions: the next app resume retries.
             }
         }
 
         fun stop(context: Context) {
             val intent = Intent(context, OverlayService::class.java).setAction(ACTION_STOP)
             try {
-                context.startService(intent)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isRunning) {
+                    context.startService(intent)
+                } else {
+                    context.stopService(Intent(context, OverlayService::class.java))
+                }
             } catch (_: Throwable) {
+                context.stopService(Intent(context, OverlayService::class.java))
             }
         }
 

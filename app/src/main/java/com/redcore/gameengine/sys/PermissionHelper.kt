@@ -43,6 +43,49 @@ object PermissionHelper {
             context, Manifest.permission.RECORD_AUDIO
         ) == PackageManager.PERMISSION_GRANTED
 
+    /** Battery optimisations exempt (i.e. the OS will not freeze our FGS aggressively). */
+    fun batteryUnrestricted(context: Context): Boolean {
+        return try {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            pm.isIgnoringBatteryOptimizations(context.packageName)
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /** True when the user blocked the app's notifications at the system level. */
+    fun notificationsBlocked(context: Context): Boolean {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        return !nm.areNotificationsEnabled()
+    }
+
+    /** True when Android is restricting background work for this app (Data Saver / OEM). */
+    fun backgroundRestricted(context: Context): Boolean {
+        return try {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            am.isBackgroundRestricted
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    data class Readiness(
+        val overlay: Boolean,
+        val notifications: Boolean,
+        val battery: Boolean,
+        val backgroundRestricted: Boolean
+    ) {
+        val readyForOverlay: Boolean get() = overlay
+        val healthy: Boolean get() = overlay && notifications && battery && !backgroundRestricted
+    }
+
+    fun readiness(context: Context): Readiness = Readiness(
+        overlay = overlay(context),
+        notifications = notifications(context) && !notificationsBlocked(context),
+        battery = batteryUnrestricted(context),
+        backgroundRestricted = backgroundRestricted(context)
+    )
+
     fun wouldShowCameraRationale(): Boolean = true
 
     fun list(context: Context): List<PermissionItem> = listOf(
@@ -115,7 +158,16 @@ object PermissionHelper {
     }
 
     fun openBatteryOptimisation(context: Context) {
-        safeStart(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        // Prefer the direct "allow" dialog; fall back to the list on ROMs that block it.
+        val direct = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:${context.packageName}")
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(direct)
+        } catch (_: Throwable) {
+            safeStart(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
     }
 
     fun openDisplaySettings(context: Context) {

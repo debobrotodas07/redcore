@@ -45,7 +45,29 @@ class SettingsViewModel : ViewModel() {
     fun setAnimations(value: Boolean) = locator.settings.setAnimations(value)
     fun setHaptics(value: Boolean) = locator.settings.setHaptics(value)
     fun setNotifications(value: Boolean) = locator.settings.setNotifications(value)
-    fun setSidebarEnabled(value: Boolean) = locator.settings.setSidebarEnabled(value)
+    fun setSidebarEnabled(value: Boolean) {
+        val app = RedCoreApp.instance
+        if (value && !com.redcore.gameengine.service.OverlayController.requestEnable(app)) {
+            // Permission missing: keep the switch on so returning from Android
+            // settings auto-starts the overlay (MainActivity re-checks on resume).
+            locator.settings.setSidebarEnabled(true)
+            _message.value = "Grant \"Display over other apps\", then come back — the sidebar starts automatically."
+            return
+        }
+        locator.settings.setSidebarEnabled(value)
+        com.redcore.gameengine.service.OverlayController.reconcile(app)
+    }
+
+    fun setCrosshairEnabled(value: Boolean) {
+        val app = RedCoreApp.instance
+        if (value && !com.redcore.gameengine.service.OverlayController.requestEnable(app)) {
+            locator.settings.setCrosshairEnabled(true)
+            _message.value = "Grant \"Display over other apps\", then come back — the crosshair starts automatically."
+            return
+        }
+        locator.settings.setCrosshairEnabled(value)
+        com.redcore.gameengine.service.OverlayController.reconcile(app)
+    }
     fun setSidebarSideLeft(left: Boolean) = locator.settings.setSidebarSide(
         if (left) com.redcore.gameengine.data.model.SidebarSide.LEFT
         else com.redcore.gameengine.data.model.SidebarSide.RIGHT
@@ -60,7 +82,6 @@ class SettingsViewModel : ViewModel() {
     fun setBrightnessControl(value: Boolean) = locator.settings.setBrightnessControl(value)
     fun setKeepScreenOn(value: Boolean) = locator.settings.setKeepScreenOn(value)
     fun setRecordingQuality(value: String) = locator.settings.setRecordingQuality(value)
-    fun setCrosshairEnabled(value: Boolean) = locator.settings.setCrosshairEnabled(value)
     fun setCrosshairDesign(value: com.redcore.gameengine.data.model.CrosshairDesign) =
         locator.settings.setCrosshairDesign(value)
     fun setCrosshairColor(value: Long) = locator.settings.setCrosshairColor(value)

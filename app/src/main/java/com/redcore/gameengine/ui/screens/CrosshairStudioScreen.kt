@@ -238,7 +238,6 @@ fun CrosshairStudioScreen(nav: NavHostController) {
                         PermissionHelper.openOverlaySettings(context)
                     } else {
                         vm.setCrosshairEnabled(enabled)
-                        com.redcore.gameengine.service.OverlayService.start(context)
                     }
                 }
             )
@@ -248,7 +247,6 @@ fun CrosshairStudioScreen(nav: NavHostController) {
                 enabled = overlayAllowed,
                 onClick = {
                     vm.setCrosshairEnabled(!settings.crosshairEnabled)
-                    com.redcore.gameengine.service.OverlayService.start(context)
                 }
             )
             if (!overlayAllowed) {

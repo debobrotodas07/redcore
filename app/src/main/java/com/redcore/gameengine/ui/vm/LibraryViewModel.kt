@@ -17,6 +17,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -33,11 +36,15 @@ data class LibraryUiState(
 
 data class AddableApp(val packageName: String, val label: String, val isGame: Boolean, val alreadyAdded: Boolean)
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 class LibraryViewModel : ViewModel() {
 
     private val locator = RedCoreApp.locator()
 
     private val query = MutableStateFlow("")
+    private val queryDebounced = query
+        .debounce(220)          // one filter/sort pass per pause, not per keystroke
+        .distinctUntilChanged()
     private val sort = MutableStateFlow(LibrarySort.RECENT)
     private val loading = MutableStateFlow(true)
 
@@ -45,8 +52,8 @@ class LibraryViewModel : ViewModel() {
     val addable: StateFlow<List<AddableApp>> = _addable.asStateFlow()
 
     val state: StateFlow<LibraryUiState> = combine(
-        locator.games.games, query, sort, loading
-    ) { games, q, s, isLoading ->
+        locator.games.games, query, queryDebounced, sort, loading
+    ) { games, typed, q, s, isLoading ->
         val filtered = games.filter {
             q.isBlank() || it.label.contains(q, ignoreCase = true) ||
                 it.packageName.contains(q, ignoreCase = true)
@@ -59,8 +66,10 @@ class LibraryViewModel : ViewModel() {
                 compareByDescending<GameEntity> { it.favorite }.thenBy { it.label.lowercase() }
             )
         }
-        LibraryUiState(sorted, q, s, isLoading)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(4000), LibraryUiState())
+        LibraryUiState(sorted, typed, s, isLoading)
+    }
+        .flowOn(Dispatchers.Default)   // filtering never touches the main thread
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(4000), LibraryUiState())
 
     init {
         viewModelScope.launch {

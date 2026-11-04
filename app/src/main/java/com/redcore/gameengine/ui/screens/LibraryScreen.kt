@@ -8,14 +8,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -77,7 +80,11 @@ fun LibraryScreen(nav: NavHostController) {
     val accent = MaterialTheme.colorScheme.primary
     var showAdd by remember { mutableStateOf(false) }
 
-    ScreenColumn(bottomPadding = 100) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
         ScreenTopBar(
             title = "Game library",
             subtitle = "${state.games.size} games • ${state.games.count { it.favorite }} favourites"
@@ -107,8 +114,10 @@ fun LibraryScreen(nav: NavHostController) {
             accent = accent
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
+        // Lazy grid: only visible cards are composed, so a 200-game library scrolls
+        // at the same cost as a 10-game one. The header above stays pinned.
         when {
             state.loading && state.games.isEmpty() -> LoadingState("Scanning installed games…")
             state.games.isEmpty() -> EmptyState(
@@ -124,24 +133,21 @@ fun LibraryScreen(nav: NavHostController) {
                     } else vm.setQuery("")
                 }
             )
-            else -> {
-                state.games.chunked(2).forEach { row ->
-                    Row(
+            else -> LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 110.dp, top = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(state.games, key = { it.packageName }) { game ->
+                    GameCard(
+                        game = game,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        row.forEach { game ->
-                            GameCard(
-                                game = game,
-                                modifier = Modifier.weight(1f),
-                                onOpen = { nav.navigate(Routes.game(game.packageName)) },
-                                onLaunch = { vm.launch(context, game) },
-                                onFavorite = { vm.toggleFavorite(game) }
-                            )
-                        }
-                        if (row.size == 1) Spacer(Modifier.weight(1f))
-                    }
-                    Spacer(Modifier.height(10.dp))
+                        onOpen = { nav.navigate(Routes.game(game.packageName)) },
+                        onLaunch = { vm.launch(context, game) },
+                        onFavorite = { vm.toggleFavorite(game) }
+                    )
                 }
             }
         }

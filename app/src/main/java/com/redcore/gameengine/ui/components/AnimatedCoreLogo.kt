@@ -35,22 +35,25 @@ fun AnimatedCoreLogo(
     pulse: Boolean = true
 ) {
     val transition = rememberInfiniteTransition(label = "logo")
-    val spin by transition.animateFloat(
+    val spin = transition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(tween(9000, easing = LinearEasing)),
         label = "spin"
     )
-    val glow by transition.animateFloat(
+    val glow = transition.animateFloat(
         initialValue = 0.25f,
         targetValue = 0.7f,
         animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
         label = "glow"
     )
-    val rotation = if (animated) spin else 0f
-    val glowAlpha = if (pulse) glow else 0.4f
+    // State is read in the draw phase below (spin.value / glow.value): the canvas
+    // repaints without re-composing this composable or its parent.
+
 
     Canvas(modifier = modifier.size(size)) {
+        val rotation = if (animated) spin.value else 0f
+        val glowAlpha = if (pulse) glow.value else 0.4f
         val r = this.size.minDimension / 2f
         val c = Offset(this.size.width / 2f, this.size.height / 2f)
 

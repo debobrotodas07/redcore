@@ -63,6 +63,7 @@ fun PermissionsScreen(nav: NavHostController) {
 
     val items = remember(refresh) { PermissionHelper.list(context) }
     val granted = items.count { it.state == PermissionState.GRANTED }
+    val readiness = remember(refresh) { PermissionHelper.readiness(context) }
 
     ScreenColumn {
         ScreenTopBar(
@@ -70,6 +71,68 @@ fun PermissionsScreen(nav: NavHostController) {
             subtitle = "$granted of ${items.size} granted",
             onBack = { nav.popBackStack() }
         )
+
+        // A single verdict instead of making the user infer it from six switches.
+        GlassCard(accent = accent) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (readiness.overlay) Icons.Rounded.CheckCircle else Icons.Rounded.ErrorOutline,
+                    contentDescription = null,
+                    tint = if (readiness.overlay) Color(0xFF42D98A) else Color(0xFFFF5A5A),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        if (readiness.overlay) "Overlay ready" else "Overlay blocked",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = TextPrimary
+                    )
+                    Text(
+                        if (readiness.overlay)
+                            "The floating sidebar can appear over your games."
+                        else
+                            "Android is not allowing REDCORE to draw over other apps yet.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            ReadinessRow(
+                label = "Display over other apps",
+                detail = if (readiness.overlay) "Granted" else "Required for the sidebar",
+                ok = readiness.overlay,
+                actionLabel = if (readiness.overlay) null else "Open",
+                onAction = { PermissionHelper.openOverlaySettings(context) }
+            )
+            Spacer(Modifier.height(8.dp))
+            ReadinessRow(
+                label = "Notifications",
+                detail = if (readiness.notifications) "Allowed" else "The service notification may be hidden",
+                ok = readiness.notifications,
+                actionLabel = if (readiness.notifications) null else "Open",
+                onAction = { PermissionHelper.openAppNotificationSettings(context) }
+            )
+            Spacer(Modifier.height(8.dp))
+            ReadinessRow(
+                label = "Battery optimisations",
+                detail = if (readiness.battery) "Unrestricted" else "The system may freeze the sidebar",
+                ok = readiness.battery,
+                actionLabel = if (readiness.battery) null else "Fix",
+                onAction = { PermissionHelper.openBatteryOptimisation(context) }
+            )
+            Spacer(Modifier.height(8.dp))
+            ReadinessRow(
+                label = "Background execution",
+                detail = if (readiness.backgroundRestricted) "Restricted by the system" else "Allowed",
+                ok = !readiness.backgroundRestricted,
+                actionLabel = if (readiness.backgroundRestricted) "Settings" else null,
+                onAction = { PermissionHelper.openAppInfo(context) }
+            )
+        }
+
+        Spacer(Modifier.height(14.dp))
 
         InfoNote(
             text = "Every permission here exists for one visible feature. REDCORE asks only when that feature is used, and nothing is ever sent off the device.",
@@ -223,3 +286,39 @@ private fun NotRequestedRow(title: String, why: String) {
     }
 }
 
+
+@Composable
+private fun ReadinessRow(
+    label: String,
+    detail: String,
+    ok: Boolean,
+    actionLabel: String?,
+    onAction: () -> Unit
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = if (ok) Icons.Rounded.CheckCircle else Icons.Rounded.ErrorOutline,
+            contentDescription = null,
+            tint = if (ok) Color(0xFF42D98A) else Color(0xFFE0A73A),
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(Modifier.width(9.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+        }
+        if (actionLabel != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(accent.copy(alpha = 0.12f))
+                    .border(1.dp, accent.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                    .clickable(onClick = onAction)
+                    .padding(horizontal = 11.dp, vertical = 6.dp)
+            ) {
+                Text(actionLabel, style = MaterialTheme.typography.labelSmall, color = accent)
+            }
+        }
+    }
+}
