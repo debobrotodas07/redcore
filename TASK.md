@@ -51,3 +51,21 @@ Next: user installs on the MEIZU, reports any crash/UX issue; then polish pass.
 ## VERIFY
 - Cloud build must be green: `gh api repos/<user>/redcore/actions/runs`
 - On device: permissions flow, sidebar overlay start/stop, screenshot, 5s recording.
+
+## P11 — PERFORMANCE & SIDEBAR REPAIR (2026-11-04)
+
+- [x] Overlay single source of truth: `OverlayController` (permission + pref reconcile)
+- [x] Sidebar window params: no LAYOUT_NO_LIMITS, cutout SHORT_EDGES, idempotent add, drag guard
+- [x] Overlay survives rotation/resolution (`onConfigurationChanged` re-clamps Y)
+- [x] Boot restore (`BootReceiver` → BOOT_COMPLETED / MY_PACKAGE_REPLACED / LOCKED_BOOT)
+- [x] Battery-optimisation exemption requested (and surfaced in Permissions)
+- [x] Animations read in draw phase (`Background`, `AnimatedCoreLogo`) — zero per-frame recompose
+- [x] Telemetry off Main (`Dispatchers.Default`, WhileSubscribed(5000), 1.5–2.5s cadence)
+- [x] Library: LazyVerticalGrid + 220ms debounce + LruCache icons
+- [x] `@Immutable` on AppSettings/DeviceSnapshot (skippable cards)
+- [x] Permission readiness checker UI on Permissions screen
+- [x] Android 14: FGS type, notification permission, exact-alarm-free design
+- [ ] Build green + APK link for P11 (in progress)
+
+## NOW
+P11 — waiting on CI run 3/4 (fix: duplicate `items` overload in LibraryScreen).
