@@ -4,7 +4,7 @@ permissions:
 name: Build REDCORE APK
 on:
   push:
-    branches: [ main ]
+    branches: [ main, redcore ]
   workflow_dispatch:
 
 jobs:
