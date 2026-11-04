@@ -24,13 +24,10 @@ Build path: project lives at `~/redcore` → push to GitHub → Actions `assembl
       Crosshair Studio, Capture, Settings, Permissions, About, Privacy, Tutorial, More hub
 - [x] P7 ViewModels wired to Room/DataStore
 - [x] P8 Backup/restore JSON via SAF, session tracking, haptics, update info
-- [ ] P9 Push repo + run Actions build, fix compile errors to green
-- [ ] P10 Deliver APK link + install steps + honest limitation list
+- [x] P9 Push repo + run Actions build, fix compile errors to green (run 2 green, build-2 released)
+- [x] P10 Deliver APK link + install steps + honest limitation list
 
-## BLOCKERS
-
-- Needs the user's GitHub username + a PAT (repo + workflow scope) to create the
-  repo and push. `~/.git-credentials` is empty and `gh` is not installed.
+- Release: https://github.com/debobrotodas07/redcore/releases/download/build-2/app-debug.apk (18.5 MB)
 
 ## DECISIONS
 
@@ -48,8 +45,8 @@ Build path: project lives at `~/redcore` → push to GitHub → Actions `assembl
 - Update check reads `BuildConfig.UPDATE_REPO` (Gradle property `-PupdateRepo=user/repo`).
 
 ## NOW
-P9 — source complete (all screens + VMs). Local git repo committed, waiting on
-GitHub credentials to push and trigger the first cloud build.
+P10 — build green (run 2). APK: https://github.com/debobrotodas07/redcore/releases/download/build-2/app-debug.apk
+Next: user installs on the MEIZU, reports any crash/UX issue; then polish pass.
 
 ## VERIFY
 - Cloud build must be green: `gh api repos/<user>/redcore/actions/runs`
