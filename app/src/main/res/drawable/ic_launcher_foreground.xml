@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- REDCORE mark: rounded core diamond with a red energy slit, inside 108dp safe zone -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF2638"
+        android:pathData="M54,22 L86,54 L54,86 L22,54 Z" />
+    <path
+        android:fillColor="#070709"
+        android:pathData="M54,34 L74,54 L54,74 L34,54 Z" />
+    <path
+        android:fillColor="#FFF0F1"
+        android:pathData="M54,42 L66,54 L54,66 L42,54 Z" />
+    <path
+        android:fillColor="#FF2638"
+        android:pathData="M46,62 L62,42 L58,58 Z" />
+    <path
+        android:fillColor="#8F101D"
+        android:pathData="M20,50 L28,50 L28,58 L20,58 Z M80,50 L88,50 L88,58 L80,58 Z" />
+</vector>

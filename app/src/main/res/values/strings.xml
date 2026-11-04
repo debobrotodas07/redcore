@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">REDCORE</string>
+    <string name="app_full_name">REDCORE GAME ENGINE</string>
+    <string name="overlay_service_label">REDCORE Sidebar</string>
+    <string name="overlay_service_text">Floating gaming toolkit is running</string>
+    <string name="capture_channel_name">Screen capture</string>
+    <string name="capture_channel_desc">Recording and screenshot status</string>
+    <string name="alerts_channel_name">REDCORE alerts</string>
+    <string name="alerts_channel_desc">Session and permission notifications</string>
+</resources>
